@@ -1,0 +1,264 @@
+# ==============================
+# INSTALAÇÃO (executar uma vez)
+# ==============================
+# !pip install -q openai-whisper gTTS requests matplotlib openai
+
+# ==============================
+# CONFIGURAÇÃO
+# ==============================
+USAR_IA = False  # Altere para True se quiser usar OpenAI
+
+# ==============================
+# IMPORTS
+# ==============================
+import os
+import re
+import whisper
+import requests
+import matplotlib.pyplot as plt
+
+from gtts import gTTS
+from base64 import b64decode
+from IPython.display import Audio, display, Javascript
+from google.colab import output
+
+# ==============================
+# CONFIGURAÇÃO OPENAI (OPCIONAL)
+# ==============================
+if USAR_IA:
+    from openai import OpenAI
+    os.environ["OPENAI_API_KEY"] = input("Digite sua API Key: ")
+    client = OpenAI()
+
+# ==============================
+# CARREGAMENTO DO MODELO DE VOZ
+# ==============================
+model = whisper.load_model("tiny")
+
+# ==============================
+# FUNÇÃO DE GRAVAÇÃO DE ÁUDIO
+# ==============================
+RECORD_JS = """
+const sleep = time => new Promise(resolve => setTimeout(resolve, time))
+const b2text = blob => new Promise(resolve => {
+  const reader = new FileReader()
+  reader.onloadend = e => resolve(e.srcElement.result)
+  reader.readAsDataURL(blob)
+})
+var record = async (time) => {
+  const stream = await navigator.mediaDevices.getUserMedia({audio: true})
+  const recorder = new MediaRecorder(stream)
+  const chunks = []
+  recorder.ondataavailable = e => chunks.push(e.data)
+  recorder.start()
+  await sleep(time)
+  return new Promise(resolve => {
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks)
+      const base64 = await b2text(blob)
+      resolve(base64)
+    }
+    recorder.stop()
+  })
+}
+"""
+
+def gravar_audio(segundos=5):
+    display(Javascript(RECORD_JS))
+    print(f"Gravando por {segundos} segundos")
+
+    audio = output.eval_js(f"record({segundos * 1000})")
+    audio_bytes = b64decode(audio.split(",")[1])
+
+    with open("audio.wav", "wb") as f:
+        f.write(audio_bytes)
+
+    return "audio.wav"
+
+# ==============================
+# TRANSCRIÇÃO DO ÁUDIO
+# ==============================
+def transcrever_audio(caminho):
+    result = model.transcribe(caminho, fp16=False, language="pt")
+    texto = result["text"].strip()
+
+    print("Texto reconhecido:", texto)
+    return texto
+
+# ==============================
+# BUSCA DE TAXAS ECONÔMICAS
+# ==============================
+def buscar_taxa(url, fallback=10.0):
+    try:
+        response = requests.get(url, timeout=5)
+        return float(response.json()[0]["valor"])
+    except:
+        print("Erro ao buscar taxa, usando valor padrão")
+        return fallback
+
+def get_cdi():
+    return buscar_taxa("https://api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados/ultimos/1?formato=json")
+
+def get_selic():
+    return buscar_taxa("https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json")
+
+# ==============================
+# EXTRAÇÃO DE INFORMAÇÕES DO TEXTO
+# ==============================
+def extrair_valor(texto):
+    match = re.search(r'\d+', texto)
+    return int(match.group()) if match else 1000
+
+def extrair_aporte(texto):
+    match = re.search(r'(\d+)\s*(por mês|mensal)', texto)
+    return int(match.group(1)) if match else 0
+
+def extrair_tempo(texto):
+    match = re.search(r'(\d+)\s*(mes|meses|ano|anos)', texto)
+
+    if not match:
+        return 12, "meses"
+
+    qtd = int(match.group(1))
+    unidade = match.group(2)
+
+    if "mes" in unidade:
+        return qtd, "meses"
+    else:
+        return qtd, "anos"
+
+# ==============================
+# CÁLCULO DE INVESTIMENTO
+# ==============================
+def calcular_evolucao(valor, aporte, taxa_anual, tempo, unidade):
+    taxa_mensal = (taxa_anual / 100) / 12
+    meses = tempo * 12 if unidade == "anos" else tempo
+
+    montante = valor
+    historico = []
+
+    for _ in range(meses + 1):
+        historico.append(montante)
+        montante = montante * (1 + taxa_mensal) + aporte
+
+    return historico
+
+# ==============================
+# GERAÇÃO DE GRÁFICO
+# ==============================
+def plotar_resultado(cdi_vals, selic_vals):
+    plt.figure()
+    plt.plot(cdi_vals, label="CDI")
+    plt.plot(selic_vals, label="Tesouro Selic")
+
+    plt.title("Evolução do Investimento")
+    plt.xlabel("Meses")
+    plt.ylabel("Valor em reais")
+
+    plt.legend()
+    plt.show()
+
+# ==============================
+# EXPLICAÇÃO DOS RESULTADOS
+# ==============================
+def explicar_resultado(valor, aporte, tempo, unidade, cdi, selic, final_cdi, final_selic):
+
+    if USAR_IA:
+        try:
+            prompt = f"""
+            Investimento inicial: {valor}
+            Aporte mensal: {aporte}
+            Tempo: {tempo} {unidade}
+
+            CDI: {cdi}%
+            Selic: {selic}%
+
+            Resultado:
+            CDI final: {final_cdi}
+            Selic final: {final_selic}
+
+            Explique de forma simples qual foi melhor.
+            """
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            return response.choices[0].message.content
+
+        except:
+            print("Erro na IA, usando modo simples")
+
+    diferenca = final_cdi - final_selic
+
+    if abs(diferenca) < 1:
+        return "Os dois investimentos tiveram praticamente o mesmo resultado."
+
+    elif diferenca > 0:
+        return f"O CDI teve melhor desempenho com {final_cdi:.2f}, enquanto a Selic ficou com {final_selic:.2f}."
+
+    else:
+        return f"A Selic teve melhor desempenho com {final_selic:.2f}, enquanto o CDI ficou com {final_cdi:.2f}."
+
+# ==============================
+# CONVERSÃO DE TEXTO PARA ÁUDIO
+# ==============================
+def falar(texto):
+    tts = gTTS(text=texto, lang="pt")
+    tts.save("resposta.mp3")
+
+    display(Audio("resposta.mp3", autoplay=True))
+
+# ==============================
+# FUNÇÃO PRINCIPAL
+# ==============================
+def executar():
+
+    # Grava e transcreve áudio
+    audio = gravar_audio(5)
+    texto = transcrever_audio(audio)
+
+    # Extrai dados do texto
+    valor = extrair_valor(texto)
+    aporte = extrair_aporte(texto)
+    tempo, unidade = extrair_tempo(texto)
+
+    print("Resumo da interpretação:")
+    print("Valor inicial:", valor)
+    print("Aporte mensal:", aporte)
+    print("Tempo:", tempo, unidade)
+
+    # Busca taxas
+    cdi = get_cdi()
+    selic = get_selic()
+
+    print("Taxas atuais:")
+    print("CDI:", cdi)
+    print("Selic:", selic)
+
+    # Calcula evolução
+    cdi_vals = calcular_evolucao(valor, aporte, cdi, tempo, unidade)
+    selic_vals = calcular_evolucao(valor, aporte, selic, tempo, unidade)
+
+    # Plota gráfico
+    plotar_resultado(cdi_vals, selic_vals)
+
+    final_cdi = cdi_vals[-1]
+    final_selic = selic_vals[-1]
+
+    # Gera explicação
+    resposta = explicar_resultado(
+        valor, aporte, tempo, unidade,
+        cdi, selic, final_cdi, final_selic
+    )
+
+    print("Resposta final:")
+    print(resposta)
+
+    # Fala resposta
+    falar(resposta)
+
+# Executa o sistema
+executar()
+
