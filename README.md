@@ -1,85 +1,139 @@
-Voice Invest Assistant
+🎙️ Voice Invest Assistant
 
 Assistente de investimentos por voz que simula aplicações financeiras usando dados reais e fornece explicações automáticas.
 
-Descrição
 
-Este projeto é um agente financeiro inteligente que permite ao usuário falar com o sistema para simular investimentos.
 
-O fluxo funciona da seguinte forma:
+📌 Sobre o projeto
 
-O usuário fala uma pergunta (ex: "Quero investir 1000 reais por 1 ano")
-O sistema converte o áudio em texto
-Interpreta os dados (valor, tempo, aportes)
-Busca taxas atualizadas como CDI e Selic via API do Banco Central
-Calcula a evolução do investimento
-Exibe um gráfico com o crescimento
-Gera uma explicação simples do resultado
-Responde também em áudio
-Funcionalidades
-Entrada por voz
-Transcrição automática de áudio
-Interpretação de linguagem natural
-Simulação de investimentos
-Uso de dados reais (CDI e Selic)
-Geração de gráficos
-Explicação automática (com ou sem IA)
-Resposta em áudio
-Tecnologias utilizadas
-Python
-Whisper (transcrição de voz)
-gTTS (texto para voz)
-Matplotlib (gráficos)
-Requests (API Banco Central)
-OpenAI (opcional para explicações)
-Como executar
-1. Instalar dependências
+Este projeto é um agente financeiro inteligente que permite ao usuário realizar simulações de investimento por meio de comandos de voz.
+
+O sistema transforma fala em texto, interpreta os dados financeiros e calcula a evolução do investimento com base em taxas reais como CDI e Selic.
+
+
+
+⚙️ Como funciona
+
+1. O usuário fala uma pergunta
+   *Exemplo: "Quero investir 1000 reais por 1 ano"*
+
+2. O sistema converte o áudio em texto
+
+3. Interpreta:
+
+   * Valor inicial
+   * Aporte mensal
+   * Tempo de investimento
+
+4. Busca dados atualizados do Banco Central
+
+5. Calcula o crescimento do investimento
+
+6. Exibe um gráfico com a evolução
+
+7. Gera uma explicação simples do resultado
+
+8. Retorna a resposta em áudio
+
+
+
+🚀 Funcionalidades
+
+* Entrada por voz
+* Transcrição automática com Whisper
+* Interpretação de linguagem natural
+* Simulação de investimentos
+* Uso de dados reais (CDI e Selic)
+* Geração de gráficos
+* Explicação automática (modo híbrido: com ou sem IA)
+* Resposta em áudio
+
+
+
+🛠️ Tecnologias utilizadas
+
+* Python
+* Whisper (speech-to-text)
+* gTTS (text-to-speech)
+* Matplotlib
+* Requests
+* OpenAI (opcional)
+
+
+
+▶️ Como executar
+
+### 1. Instalar dependências
+
+```bash
 pip install openai-whisper gTTS requests matplotlib openai
-2. Executar o projeto
+```
 
-Abra no Google Colab ou ambiente local e execute o código principal.
+### 2. Executar o projeto
 
-Configuração opcional de IA
+* Abra no Google Colab ou ambiente local
+* Execute o script principal
 
-No código existe a variável:
 
+
+🧠 Modo híbrido (com ou sem IA)
+
+O projeto funciona mesmo sem uso de IA paga.
+
+No código:
+
+```python
 USAR_IA = False
+```
 
-Se quiser usar explicações com IA:
+Se quiser usar IA:
 
-Altere para True
-Insira sua chave da OpenAI
+* Altere para `True`
+* Insira sua chave da OpenAI
 
-Caso contrário, o sistema funciona normalmente em modo gratuito.
+Caso contrário, o sistema usa lógica interna para explicar os resultados.
 
-Exemplo de uso
 
-Entrada por voz:
 
+ 💡 Exemplo de uso
+
+**Entrada (voz):**
 "Quero investir 2000 reais por 2 anos com 100 por mês"
 
-Saída:
+**Saída:**
 
-Gráfico de crescimento
-Comparação entre CDI e Selic
-Explicação simples do melhor investimento
-Resposta em áudio
-Estrutura do projeto
-Captura de áudio
-Processamento de linguagem
-Coleta de dados econômicos
-Simulação financeira
-Geração de resposta
-Possíveis melhorias
-Interface web (Streamlit ou Flask)
-Aplicativo mobile
-Suporte a mais tipos de investimento
-Perfil de investidor
-Histórico de simulações
-Licença
+* Gráfico de crescimento
+* Comparação entre CDI e Selic
+* Explicação do melhor resultado
+* Resposta em áudio
 
-Este projeto é de uso educacional e pode ser adaptado livremente.
 
-Autor: Juliana Oliveira
 
-Desenvolvido como projeto de estudo em IA aplicada a finanças.
+📁 Estrutura do projeto
+
+* Captura de áudio
+* Transcrição
+* Processamento de texto
+* Coleta de dados econômicos
+* Simulação financeira
+* Geração de resposta
+
+
+ 🔮 Melhorias futuras
+
+* Interface web (Streamlit)
+* Aplicativo mobile
+* Suporte a mais investimentos (CDB, IPCA, etc.)
+* Perfil de investidor
+* Histórico de simulações
+
+
+
+ 📄 Licença
+
+Este projeto é de uso educacional e pode ser modificado livremente.
+
+
+ 👨‍💻 Autor
+
+Juliana Oliveira
